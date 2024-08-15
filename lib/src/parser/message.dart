@@ -68,29 +68,37 @@ class HL7v2Message {
   }) {
     var ret = <String, dynamic>{};
     var completedSegments = {};
+    var moveOn = true;
+    String segment = '';
+    String segmentName = '';
 
-    for (var element in messageDef[groupName]['elements']) {
-      if (segmentArray.isEmpty) {
-        for (var j = messageDef[groupName]['elements'].indexOf(element);
-            j < messageDef[groupName]['elements'].length;
-            j++) {
-          var elem = messageDef[groupName]['elements'][j];
-          if (int.parse(elem['minOccurs']) > 0) {
-            if (elem['segment'] != null) {
+    for (var i = 0; i < messageDef[groupName]['elements'].length; i++) {
+      if (segmentArray.isEmpty && moveOn) {
+        for (var j = i; j < messageDef[groupName]['elements'].length; j++) {
+          var element = messageDef[groupName]['elements'][j];
+          // If we're missing some required group or segment that we haven't gotten to yet
+          if (int.parse(element['minOccurs']) > 0) {
+            if (element['segment'] != null) {
               throw Exception(
-                  'Message is missing required segment ${elem['segment']}.');
+                  'Message is missing required segment ${element['segment']}.');
             } else {
               throw Exception(
-                  'Message is missing required group ${elem['group']}.');
+                  'Message is missing required group ${element['group']}.');
             }
           }
         }
         return ret;
       }
 
-      var segment = segmentArray.removeAt(0);
-      var segmentName = segment.substring(0, 3);
+      var element = messageDef[groupName]['elements'][i];
 
+      if (moveOn) {
+        segment = segmentArray.removeAt(0);
+        segmentName = segment.substring(0, 3);
+      }
+
+      // If we have seen this segment the maximum number of times it occurs in different distinct positions in this
+      // group, a new repetition of the group must be starting.
       if (completedSegments[segmentName] != null &&
           completedSegments[segmentName] >=
               segmentPositionCount[segmentName][groupName]) {
@@ -98,6 +106,7 @@ class HL7v2Message {
         return ret;
       }
 
+      // If this segment is not part of the group, add it back on and return
       if (segmentIndex[segmentName] == null ||
           segmentIndex[segmentName][groupName] == null) {
         segmentArray.insert(0, segment);
@@ -105,12 +114,13 @@ class HL7v2Message {
       }
 
       if (element['segment'] == segmentName) {
-        var jsonKey = element['jsonKey'] ?? segmentName;
+        // We have a match
+        final jsonKey = element['jsonKey'] ?? segmentName;
 
         completedSegments[segmentName] ??= 0;
         completedSegments[segmentName]++;
 
-        if (int.parse(element['maxOccurs']) != 1) {
+        if (int.tryParse(element['maxOccurs']) != 1) {
           ret[jsonKey] ??= [];
 
           segmentArray.insert(0, segment);
@@ -130,14 +140,19 @@ class HL7v2Message {
             delimiters: _delimiters,
           );
         }
+
+        moveOn = true;
       } else if (element['segment'] != null &&
           int.parse(element['minOccurs']) > 0) {
+        // We've missed a required segment
         throw Exception(
             'Message is missing required segment ${element['segment']}.');
       } else if (element['segment'] != null &&
           int.parse(element['minOccurs']) == 0) {
-        continue;
+        // optional segment that we can skip
+        moveOn = false;
       } else if (element['group'] != null) {
+        // We need to check the group for the segment
         if (segmentIndex[segmentName] != null &&
             segmentIndex[segmentName][element['group']] != null) {
           segmentArray.insert(0, segment);
@@ -169,9 +184,12 @@ class HL7v2Message {
               segmentPositionCount: segmentPositionCount,
             );
           }
+          moveOn = true;
         } else if (int.parse(element['minOccurs']) > 0) {
           throw Exception(
               'Message is missing required group ${element['group']}.');
+        } else {
+          moveOn = false;
         }
       }
     }
@@ -358,8 +376,9 @@ class HL7v2Message {
       ret[(i + 1).toString()] = {};
 
       for (var j = 0; j < componentDef['components'].length; j++) {
-        ret[(i + 1).toString()][(j + 1).toString()] =
-            Escape.unEscapeString(delimiters, subCompArray[j]);
+        ret[(i + 1).toString()][(j + 1).toString()] = j < subCompArray.length
+            ? Escape.unEscapeString(delimiters, subCompArray[j])
+            : null;
       }
     }
 
@@ -382,9 +401,9 @@ class HL7v2Message {
         continue;
       }
 
-      final pathComponents = path.path.split('/');
+      final pathComponents = schemaFile.path.split('/');
       final entityName =
-          pathComponents.last.substring(pathComponents.last.length - 5);
+          pathComponents.last.substring(0, pathComponents.last.length - 5);
 
       returnValue[entityName] = loadSchemaFile(file: schemaFile);
     }
