@@ -3,6 +3,15 @@ import 'package:hl7_v2/hl7_v2.dart';
 Future<void> main() async {
   final hl7Message = HL7v2Message();
 
+  //
+  // The code below is an example how to generate the Dart code out of the
+  // original JSON schema. You can make use of the original schema by
+  // using loadSchema()
+  //
+  // final schema = hl7Message.loadSchema(schemaBaseDirectory: './schema');
+  // await hl7Message.writeDartJsonSchema(
+  //     schema: schema, schemaBaseDirectory: './schema');
+
   print(hl7Message.parseHl7Message(
       '''MSH|^~&|ADT1|GOOD HEALTH HOSPITAL|GHH LAB, INC.|GOOD HEALTHHOSPITAL|201808181126|SECURITY|ADT^A01^ADT_A01|MSG00001|P|2.7|
 EVN|A01|201808181123||

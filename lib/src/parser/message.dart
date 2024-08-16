@@ -2,6 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hl7_v2/hl7_v2.dart';
+import 'package:hl7_v2/src/schema/dataTypes.dart';
+import 'package:hl7_v2/src/schema/fields.dart';
+import 'package:hl7_v2/src/schema/messages.dart';
+import 'package:hl7_v2/src/schema/segments.dart';
+import 'package:hl7_v2/src/schema/structure.dart';
+import 'package:recase/recase.dart';
 
 class HL7v2Message {
   /// The default HL7 v2 delimiters
@@ -16,7 +22,13 @@ class HL7v2Message {
   late Map<String, dynamic> _schema;
 
   HL7v2Message() {
-    _schema = loadSchema();
+    // setup default schema
+    _schema = {};
+    _schema['dataTypes'] = schemaDataTypes;
+    _schema['fields'] = schemaFields;
+    _schema['messages'] = schemaMessages;
+    _schema['segments'] = schemaSegments;
+    _schema['structure'] = schemaStructure;
   }
 
   /// Builds an index with the segment names as the keys and the groups that segment is in as the values.
@@ -385,13 +397,17 @@ class HL7v2Message {
     return ret;
   }
 
-  Map<String, dynamic> loadSchemaFile({required File file}) {
+  /// Loads a single JSON based schema file from disk and deserializes it.
+  Map<String, dynamic> _loadSchemaFile({required File file}) {
     final fileData = file.readAsStringSync();
     final json = jsonDecode(fileData);
     return json;
   }
 
-  Map<String, dynamic> loadSchemaFiles({required Directory path}) {
+  /// Loads all JSON schema files from a single directory, deserializes them
+  /// and returns a JSON object with one entry per file.
+  Map<String, dynamic> _loadSchemaFilesFromDirectory(
+      {required Directory path}) {
     final entities = path.listSync(recursive: false);
     final schemaFiles = entities.whereType<File>().toList();
     final returnValue = <String, dynamic>{};
@@ -405,29 +421,78 @@ class HL7v2Message {
       final entityName =
           pathComponents.last.substring(0, pathComponents.last.length - 5);
 
-      returnValue[entityName] = loadSchemaFile(file: schemaFile);
+      returnValue[entityName] = _loadSchemaFile(file: schemaFile);
     }
 
     return returnValue;
   }
 
-  Map<String, dynamic> loadSchema() {
-    final schemaBaseDirectory = './schema';
-
+  /// Loads a JSON based schema from [schemaBaseDirectory]. This will load
+  /// the original Redox files from disk. This method exists to preserve
+  /// backward compatibility with the original repository.
+  Map<String, dynamic> loadSchema({required String schemaBaseDirectory}) {
     final schema = <String, dynamic>{};
 
-    schema['dataTypes'] =
-        loadSchemaFiles(path: Directory('$schemaBaseDirectory/dataTypes'));
-    schema['fields'] =
-        loadSchemaFiles(path: Directory('$schemaBaseDirectory/fields'));
-    schema['messages'] =
-        loadSchemaFiles(path: Directory('$schemaBaseDirectory/messages'));
-    schema['segments'] =
-        loadSchemaFiles(path: Directory('$schemaBaseDirectory/segments'));
-    schema['structure'] = loadSchemaFile(
+    schema['dataTypes'] = _loadSchemaFilesFromDirectory(
+        path: Directory('$schemaBaseDirectory/dataTypes'));
+    schema['fields'] = _loadSchemaFilesFromDirectory(
+        path: Directory('$schemaBaseDirectory/fields'));
+    schema['messages'] = _loadSchemaFilesFromDirectory(
+        path: Directory('$schemaBaseDirectory/messages'));
+    schema['segments'] = _loadSchemaFilesFromDirectory(
+        path: Directory('$schemaBaseDirectory/segments'));
+    schema['structure'] = _loadSchemaFile(
         file:
             File(Directory('$schemaBaseDirectory/structure/index.json').path));
 
     return schema;
+  }
+
+  /// Take data at key [schemaKey] in [data] and writes it to a file located in
+  /// the directory [schemaFilePath].
+  Future<void> _writeDartJsonSchemaFile(
+      {required String schemaFilePath,
+      required String schemaKey,
+      required Map<String, dynamic> schema}) async {
+    final schemaFile = File('$schemaFilePath/$schemaKey.dart');
+
+    final variableName = 'schema_$schemaKey'.camelCase;
+
+    await schemaFile.writeAsString(
+        'const $variableName = <String,dynamic>${jsonEncode(schema[schemaKey])};');
+  }
+
+  /// Writes a JSON based schema that was already loaded back to disk by writing
+  /// Dart source codes. This function helps in translating the schema from
+  /// the original repository (or any additional custom schemas) to Dart code,
+  /// which is easier to package in Dart-only software.
+  Future<void> writeDartJsonSchema(
+      {required Map<String, dynamic> schema,
+      required String schemaBaseDirectory}) async {
+    await _writeDartJsonSchemaFile(
+      schemaFilePath: schemaBaseDirectory,
+      schemaKey: 'dataTypes',
+      schema: schema,
+    );
+    await _writeDartJsonSchemaFile(
+      schemaFilePath: schemaBaseDirectory,
+      schemaKey: 'fields',
+      schema: schema,
+    );
+    await _writeDartJsonSchemaFile(
+      schemaFilePath: schemaBaseDirectory,
+      schemaKey: 'messages',
+      schema: schema,
+    );
+    await _writeDartJsonSchemaFile(
+      schemaFilePath: schemaBaseDirectory,
+      schemaKey: 'segments',
+      schema: schema,
+    );
+    await _writeDartJsonSchemaFile(
+      schemaFilePath: schemaBaseDirectory,
+      schemaKey: 'structure',
+      schema: schema,
+    );
   }
 }
