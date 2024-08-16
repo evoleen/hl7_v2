@@ -21,6 +21,9 @@ class HL7v2Message {
 
   late Map<String, dynamic> _schema;
 
+  Map<String, String> get delimiters => _delimiters;
+  Map<String, dynamic> get schema => _schema;
+
   HL7v2Message() {
     // setup default schema
     _schema = {};
