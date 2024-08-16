@@ -92,7 +92,7 @@ class HL7v2Message {
         for (var j = i; j < messageDef[groupName]['elements'].length; j++) {
           var element = messageDef[groupName]['elements'][j];
           // If we're missing some required group or segment that we haven't gotten to yet
-          if (int.parse(element['minOccurs']) > 0) {
+          if ((int.tryParse(element['minOccurs']) ?? 0) > 0) {
             if (element['segment'] != null) {
               throw Exception(
                   'Message is missing required segment ${element['segment']}.');
@@ -158,12 +158,12 @@ class HL7v2Message {
 
         moveOn = true;
       } else if (element['segment'] != null &&
-          int.parse(element['minOccurs']) > 0) {
+          (int.tryParse(element['minOccurs']) ?? 0) > 0) {
         // We've missed a required segment
         throw Exception(
             'Message is missing required segment ${element['segment']}.');
       } else if (element['segment'] != null &&
-          int.parse(element['minOccurs']) == 0) {
+          int.tryParse(element['minOccurs']) == 0) {
         // optional segment that we can skip
         moveOn = false;
       } else if (element['group'] != null) {
@@ -172,7 +172,7 @@ class HL7v2Message {
             segmentIndex[segmentName][element['group']] != null) {
           segmentArray.insert(0, segment);
 
-          if (int.parse(element['maxOccurs']) != 1) {
+          if (int.tryParse(element['maxOccurs']) != 1) {
             ret[element['group']] ??= [];
 
             while (segmentArray.isNotEmpty &&
@@ -200,7 +200,7 @@ class HL7v2Message {
             );
           }
           moveOn = true;
-        } else if (int.parse(element['minOccurs']) > 0) {
+        } else if ((int.tryParse(element['minOccurs']) ?? 0) > 0) {
           throw Exception(
               'Message is missing required group ${element['group']}.');
         } else {
