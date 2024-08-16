@@ -11,7 +11,7 @@ import 'package:recase/recase.dart';
 
 class HL7v2Message {
   /// The default HL7 v2 delimiters
-  final _delimiters = {
+  final defaultDelimiters = {
     'field': '|',
     'component': '^',
     'repetition': '~',
@@ -20,11 +20,12 @@ class HL7v2Message {
   };
 
   late Map<String, dynamic> _schema;
+  late Map<String, String> _delimiters;
 
   Map<String, String> get delimiters => _delimiters;
   Map<String, dynamic> get schema => _schema;
 
-  HL7v2Message() {
+  HL7v2Message({Map<String, String>? delimiters}) {
     // setup default schema
     _schema = {};
     _schema['dataTypes'] = schemaDataTypes;
@@ -32,6 +33,46 @@ class HL7v2Message {
     _schema['messages'] = schemaMessages;
     _schema['segments'] = schemaSegments;
     _schema['structure'] = schemaStructure;
+
+    _delimiters = delimiters ?? defaultDelimiters;
+  }
+
+  dynamic mergeMaps(dynamic a, dynamic b) {
+    // for atomic values always give precedence to B
+    if (b is! Map) {
+      return b;
+    }
+
+    final result = <String, dynamic>{};
+
+    // merge everything from B into A, giving precedence to B
+    for (String bKey in b.keys) {
+      if (a.containsKey(bKey)) {
+        result[bKey] = mergeMaps(a[bKey], b[bKey]);
+      } else {
+        result[bKey] = b[bKey];
+      }
+    }
+
+    // copy everything from A that is not in B also into the result
+    for (String aKey in a.keys) {
+      if (!b.containsKey(aKey)) {
+        result[aKey] = a[aKey];
+      }
+    }
+
+    return result;
+  }
+
+  /// Sets a new schema [schema]. If [merge] is false (the default), it will
+  /// replace the existing schema with the new one. If [merge] is true, the
+  /// new schema will be merged into the existing one.
+  void setSchema({required Map<String, dynamic> schema, merge = false}) {
+    if (merge == false) {
+      _schema = schema;
+    } else {
+      _schema = mergeMaps(_schema, schema);
+    }
   }
 
   /// Builds an index with the segment names as the keys and the groups that segment is in as the values.
