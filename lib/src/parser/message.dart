@@ -259,7 +259,6 @@ class HL7v2Message {
   Map<String, dynamic> parseHl7Message(String hl7) {
     var messageEventKey, messageType, eventType;
     List<String> segmentArray;
-    var delimiters = {};
     List<String> mshArray;
     Map<String, dynamic> messageDef;
     Map<String, dynamic> segmentIndex = {};
@@ -278,23 +277,23 @@ class HL7v2Message {
     // Assume MSH is first segment - it's not necessarilly the first segment, but should be unless BHS segments are in play
     // If a customer is sending us BHS segments, we should write a batch message V2, then call this function on each message
     if (segmentArray.isNotEmpty && segmentArray[0].substring(0, 3) == 'MSH') {
-      delimiters['field'] = segmentArray[0].substring(3, 4); // |
-      delimiters['component'] = segmentArray[0].substring(4, 5); // ^
-      delimiters['repetition'] = segmentArray[0].substring(5, 6); // ~
-      delimiters['escape'] = segmentArray[0].substring(6, 7); // \
-      delimiters['subComponent'] = segmentArray[0].substring(7, 8); // &
+      _delimiters['field'] = segmentArray[0].substring(3, 4); // |
+      _delimiters['component'] = segmentArray[0].substring(4, 5); // ^
+      _delimiters['repetition'] = segmentArray[0].substring(5, 6); // ~
+      _delimiters['escape'] = segmentArray[0].substring(6, 7); // \
+      _delimiters['subComponent'] = segmentArray[0].substring(7, 8); // &
 
-      mshArray = segmentArray[0].split(delimiters['field']);
+      mshArray = segmentArray[0].split(_delimiters['field']!);
       mshArray.insert(
           1,
-          delimiters[
-              'field']); // Add field delimiter back in to make length correct
+          _delimiters[
+              'field']!); // Add field delimiter back in to make length correct
 
-      messageType = mshArray[9].split(delimiters['component'])[0];
+      messageType = mshArray[9].split(_delimiters['component']!)[0];
 
       eventType = messageType == 'ACK'
           ? 'ACK'
-          : mshArray[9].split(delimiters['component'])[1];
+          : mshArray[9].split(_delimiters['component']!)[1];
     } else {
       throw Exception('Could not read MSH segment of HL7 v2 message.');
     }
