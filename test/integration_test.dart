@@ -192,7 +192,7 @@ FT1|1|691234||20090923^20090923||CG|84460^^PROC|||1|125.10||MED^^SRCA||||||123.1
     });
 
     test('should parse an HL7 message', () {
-      var json = parser.parseHl7Message(hl7);
+      var json = parser.parse(hl7);
       expect(json, equals(outputJSON));
     });
 
@@ -201,7 +201,7 @@ FT1|1|691234||20090923^20090923||CG|84460^^PROC|||1|125.10||MED^^SRCA||||||123.1
           '''MSH|^~\\&|MIRTH||REDOX|RDX|20150915004731||ACK^S12|20150915004731|T|2.3
 MSA|AA|1''';
 
-      var json = parser.parseHl7Message(ack);
+      var json = parser.parse(ack);
       expect(json, equals(ackJSON));
     });
 
@@ -212,7 +212,7 @@ MSA|AA|1''';
           .replaceAll('~', '+')
           .replaceAll('&', r'$');
 
-      var json = parser.parseHl7Message(modifiedhl7);
+      var json = parser.parse(modifiedhl7);
 
       var expected = Map<String, dynamic>.from(outputJSON);
       expected['MSH']['1'] = '*';
@@ -238,7 +238,7 @@ MSA|AA|1''';
           .replaceAll('\n        ', '\r')
           .trim();
 
-      var ret = parser.parseHl7Message(hl7);
+      var ret = parser.parse(hl7);
       var retAsString = jsonEncode(
           ret); // Convert the output JSON to a string for easy assertion
 

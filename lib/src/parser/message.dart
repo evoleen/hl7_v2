@@ -256,7 +256,7 @@ class HL7v2Message {
   /// Parses an HL7 v2 message and converts to JSON representation
   /// @param {String} hl7
   /// @return {Map<String, dynamic>}
-  Map<String, dynamic> parseHl7Message(String hl7) {
+  Map<String, dynamic> parse(String hl7) {
     var messageEventKey, messageType, eventType;
     List<String> segmentArray;
     List<String> mshArray;
