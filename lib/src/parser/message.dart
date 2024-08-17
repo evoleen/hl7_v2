@@ -349,8 +349,9 @@ class HL7v2Message {
   Map<String, dynamic> parseSegment({
     required String segmentValue,
     required String segmentName,
-    required Map<String, String> delimiters,
+    Map<String, String>? delimiters,
   }) {
+    delimiters ??= _delimiters;
     var ret = <String, dynamic>{};
     var schema = _schema;
     var segmentDef = schema['segments'][segmentName];
@@ -393,8 +394,11 @@ class HL7v2Message {
   /// @param  {String} fieldName
   /// @param  {Object} [delimiters] Optional object specifying different delimiters than the defaults
   /// @return {JSON/String}            Either JSON or String. JSON if field has components, string otherwise.
-  Map<String, dynamic> parseField(
-      String fieldValue, String fieldName, Map<String, String>? delimiters) {
+  dynamic parseField(
+    String fieldValue,
+    String fieldName,
+    Map<String, String>? delimiters,
+  ) {
     var ret = <String, dynamic>{};
     var schema = _schema;
     var dataTypeDef =
@@ -406,7 +410,7 @@ class HL7v2Message {
     // Simple String field
     if (dataTypeDef['dataType'] == 'STRING' ||
         dataTypeDef['dataType'] == 'VARIES') {
-      return {'value': Escape.unEscapeString(delimiters, fieldValue)};
+      return Escape.unEscapeString(delimiters, fieldValue);
     }
 
     // Field has components

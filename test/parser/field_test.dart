@@ -11,12 +11,12 @@ void main() {
 
     test('should handle simple fields like MSH.10', () {
       final ret = parser.parseField('12345', 'MSH.10', null);
-      expect(ret['value'], equals('12345'));
+      expect(ret, equals('12345'));
     });
 
     test('should handle fields with data type VARIES like OBX.5', () {
       final ret = parser.parseField('1^2&3', 'OBX.5', null);
-      expect(ret['value'], equals('1^2&3'));
+      expect(ret, equals('1^2&3'));
     });
 
     test('should handle fields with components and sub components like PID.3',
