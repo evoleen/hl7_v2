@@ -573,7 +573,7 @@ class HL7v2Message {
     String ret = '';
 
     if (fieldValue is! Map) {
-      return Escape.escapeString(delimiters, fieldValue.toString());
+      return Escape.escapeString(delimiters, fieldValue);
     }
 
     fieldValue.forEach((key, value) {
@@ -589,10 +589,10 @@ class HL7v2Message {
             ret += delimiters['subComponent'] ?? '';
             subComponentCounter++;
           }
-          ret += Escape.escapeString(delimiters, subValue.toString()) ?? '';
+          ret += Escape.escapeString(delimiters, subValue) ?? '';
         });
       } else {
-        ret += Escape.escapeString(delimiters, value.toString()) ?? '';
+        ret += Escape.escapeString(delimiters, value) ?? '';
       }
     });
 
@@ -617,7 +617,7 @@ class HL7v2Message {
     delimiters ??= _delimiters;
 
     if (dataTypeDef['dataType'] == 'STRING') {
-      return Escape.escapeString(delimiters, fieldValue.toString()) ?? '';
+      return Escape.escapeString(delimiters, fieldValue) ?? '';
     }
 
     if (dataTypeDef['dataType'] == 'VARIES') {
@@ -640,8 +640,7 @@ class HL7v2Message {
       compsToAdd = 0;
 
       if (componentDef['dataType'] == 'STRING') {
-        ret +=
-            Escape.escapeString(delimiters, fieldValue[i + 1].toString()) ?? '';
+        ret += Escape.escapeString(delimiters, fieldValue[i + 1]) ?? '';
         continue;
       }
 
@@ -658,9 +657,7 @@ class HL7v2Message {
         }
         subCompsToAdd = 0;
 
-        ret += Escape.escapeString(
-                delimiters, fieldValue[i + 1][j + 1].toString()) ??
-            '';
+        ret += Escape.escapeString(delimiters, fieldValue[i + 1][j + 1]) ?? '';
       }
     }
 
@@ -770,7 +767,7 @@ class HL7v2Message {
           String jsonKey = element['jsonKey'] ?? element['segment'];
           if (groupJSON[jsonKey] != null) {
             if (groupJSON[jsonKey] is List) {
-              int limit = (int.parse(element['maxOccurs']) == 1)
+              int limit = (_tryParseInt(element['maxOccurs']) == 1)
                   ? 1
                   : groupJSON[jsonKey].length;
               for (j = 0; j < limit; j++) {
@@ -783,14 +780,14 @@ class HL7v2Message {
                   groupJSON[jsonKey], element['segment'], schema, delimiters);
               ret += '\r';
             }
-          } else if (int.parse(element['minOccurs']) > 0) {
+          } else if ((_tryParseInt(element['minOccurs']) ?? 0) > 0) {
             throw Exception(
                 'Message is missing required segment ${element['segment']}');
           }
         } else {
           if (groupJSON[element['group']] != null) {
             if (groupJSON[element['group']] is List) {
-              int limit = (int.parse(element['maxOccurs']) == 1)
+              int limit = (_tryParseInt(element['maxOccurs']) == 1)
                   ? 1
                   : groupJSON[element['group']].length;
               for (j = 0; j < limit; j++) {
@@ -801,7 +798,7 @@ class HL7v2Message {
               ret += writeGroup(
                   groupJSON[element['group']], messageDef, element['group']);
             }
-          } else if (int.parse(element['minOccurs']) > 0) {
+          } else if ((_tryParseInt(element['minOccurs']) ?? 0) > 0) {
             throw Exception(
                 'Message is missing required group ${element['group']}');
           }
