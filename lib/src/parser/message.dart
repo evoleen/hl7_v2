@@ -617,7 +617,8 @@ class HL7v2Message {
     delimiters ??= _delimiters;
 
     if (dataTypeDef['dataType'] == 'STRING') {
-      return Escape.escapeString(delimiters, fieldValue) ?? '';
+      return Escape.escapeString(delimiters, (fieldValue ?? '').toString()) ??
+          '';
     }
 
     if (dataTypeDef['dataType'] == 'VARIES') {
@@ -670,14 +671,15 @@ class HL7v2Message {
   /// [schema] The schema defining how to pack up the schema
   /// [delimiters] The delimiters used by this message
   /// Returns the string version of the segment
-  String writeSegment(Map<String, dynamic> segmentValue, String segmentName,
-      Map<String, dynamic> schema, Map<String, String>? delimiters) {
+  String writeSegment(Map<dynamic, dynamic> segmentValue, String segmentName,
+      Map<String, dynamic>? schema, Map<String, String>? delimiters) {
     String ret = '';
     dynamic fieldValue;
     List<dynamic> fields;
     int startIndex;
 
     delimiters ??= _delimiters;
+    schema ??= _schema;
 
     final Map<String, dynamic> segmentDef = schema['segments'][segmentName];
     ret = segmentName;
@@ -730,19 +732,22 @@ class HL7v2Message {
   /// Packs up a json object representation of HL7 into an actual HL7 message
   /// [json] The JSON version of the HL7 message
   /// Returns the HL7 message
-  String writeMessage(Map<String, dynamic> json,
-      Map<String, String>? delimiters, Map<String, dynamic> schema) {
+  String writeMessage(
+      {required Map<String, dynamic> json,
+      Map<String, String>? delimiters,
+      Map<String, dynamic>? schema}) {
     String? messageType, eventType, messageEventKey;
     String ret;
 
     delimiters ??= _delimiters;
+    schema ??= _schema;
 
-    messageType = json['MSH'][9][1];
+    messageType = json['MSH']["9"]["1"];
 
     if (messageType == 'ACK') {
       eventType = 'ACK';
     } else {
-      eventType = json['MSH'][9][2];
+      eventType = json['MSH']["9"]["2"];
     }
 
     messageEventKey = schema['structure'][messageType]?[eventType];
