@@ -257,7 +257,8 @@ class HL7v2Message {
   /// @param {String} hl7
   /// @return {Map<String, dynamic>}
   Map<String, dynamic> parse(String hl7) {
-    var messageEventKey, messageType, eventType;
+    String messageType;
+    String eventType;
     List<String> segmentArray;
     List<String> mshArray;
     Map<String, dynamic> messageDef;
@@ -298,7 +299,7 @@ class HL7v2Message {
       throw Exception('Could not read MSH segment of HL7 v2 message.');
     }
 
-    messageEventKey = _schema['structure'][messageType][eventType];
+    final messageEventKey = _schema['structure'][messageType][eventType];
 
     messageDef = _schema['messages'][messageEventKey];
 
