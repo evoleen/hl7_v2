@@ -37,7 +37,12 @@ class HL7v2Message {
     _delimiters = delimiters ?? defaultDelimiters;
   }
 
-  dynamic mergeMaps(dynamic a, dynamic b) {
+  /// Recursively merges a Map<String,dynamic> [b] into Map<String,dynamic> [a].
+  /// Atomic values that exist in both [a] and [b] will be replaced with values
+  /// in [b]. This method is used to merge two schemas, where a new schema is
+  /// merged into an existing one, giving values of the new schema precedence
+  /// over the ones in the existing schema.
+  dynamic _mergeMaps(dynamic a, dynamic b) {
     // for atomic values always give precedence to B
     if (b is! Map) {
       return b;
@@ -48,7 +53,7 @@ class HL7v2Message {
     // merge everything from B into A, giving precedence to B
     for (String bKey in b.keys) {
       if (a.containsKey(bKey)) {
-        result[bKey] = mergeMaps(a[bKey], b[bKey]);
+        result[bKey] = _mergeMaps(a[bKey], b[bKey]);
       } else {
         result[bKey] = b[bKey];
       }
@@ -64,6 +69,18 @@ class HL7v2Message {
     return result;
   }
 
+  /// Helper function to convert [input] to integer. Since int.tryParse()
+  /// will not accept integers as inputs but HL7 JSON inputs could either
+  /// consist of strings or integers (depending on how values are converted
+  /// during decoding), we need a conversion method that supports both cases.
+  int? _tryParseInt(dynamic input) {
+    if (input is int) {
+      return input;
+    }
+
+    return int.tryParse(input);
+  }
+
   /// Sets a new schema [schema]. If [merge] is false (the default), it will
   /// replace the existing schema with the new one. If [merge] is true, the
   /// new schema will be merged into the existing one.
@@ -71,7 +88,7 @@ class HL7v2Message {
     if (merge == false) {
       _schema = schema;
     } else {
-      _schema = mergeMaps(_schema, schema);
+      _schema = _mergeMaps(_schema, schema);
     }
   }
 
@@ -80,11 +97,12 @@ class HL7v2Message {
   /// Also, builds a second index which counts the number of distinct positional occurrences of a given
   /// segment as a direct child of each group it is part of.
   ///
-  /// @param  {Object} segmentIndex The segmentIndex so far
-  /// @param  {Object} segmentPositionCount The segmentPositionCount so far
-  /// @param  {Object} messageDef   The message definition we're building
-  /// @param  {String} groupName    The name of the current group we're processing
-  /// @return {Object}              Implicitly returns the index in teh segmentIndex variable
+  /// [segmentIndex] The segmentIndex so far
+  /// [segmentPositionCount] The segmentPositionCount so far
+  /// [messageDef] The message definition we're building
+  /// [groupName] The name of the current group we're processing
+  ///
+  /// Implicitly returns the index in the segmentIndex variable
   void buildGroupIndices(
       Map<String, dynamic> segmentIndex,
       Map<String, dynamic> segmentPositionCount,
@@ -111,10 +129,11 @@ class HL7v2Message {
   }
 
   /// Unpacks a group of segments - defined as a separate function because we have to use recursion
-  /// @param  {Array} segmentArray Array of segments
-  /// @param  {Object} messageDef   The definition of this message type
-  /// @param  {String} groupName    The name of the group we are unpacking
-  /// @return {Object}              The unpacked group
+  /// [segmentArray] Array of segments
+  /// [messageDef] The definition of this message type
+  /// [groupName] The name of the group we are unpacking
+  ///
+  /// Returns the unpacked group
   Map<String, dynamic> parseGroup({
     required List<String> segmentArray,
     required Map<String, dynamic> segmentIndex,
@@ -133,7 +152,7 @@ class HL7v2Message {
         for (var j = i; j < messageDef[groupName]['elements'].length; j++) {
           var element = messageDef[groupName]['elements'][j];
           // If we're missing some required group or segment that we haven't gotten to yet
-          if ((int.tryParse(element['minOccurs']) ?? 0) > 0) {
+          if ((_tryParseInt(element['minOccurs']) ?? 0) > 0) {
             if (element['segment'] != null) {
               throw Exception(
                   'Message is missing required segment ${element['segment']}.');
@@ -176,7 +195,7 @@ class HL7v2Message {
         completedSegments[segmentName] ??= 0;
         completedSegments[segmentName]++;
 
-        if (int.tryParse(element['maxOccurs']) != 1) {
+        if (_tryParseInt(element['maxOccurs']) != 1) {
           ret[jsonKey] ??= [];
 
           segmentArray.insert(0, segment);
@@ -199,12 +218,12 @@ class HL7v2Message {
 
         moveOn = true;
       } else if (element['segment'] != null &&
-          (int.tryParse(element['minOccurs']) ?? 0) > 0) {
+          (_tryParseInt(element['minOccurs']) ?? 0) > 0) {
         // We've missed a required segment
         throw Exception(
             'Message is missing required segment ${element['segment']}.');
       } else if (element['segment'] != null &&
-          int.tryParse(element['minOccurs']) == 0) {
+          _tryParseInt(element['minOccurs']) == 0) {
         // optional segment that we can skip
         moveOn = false;
       } else if (element['group'] != null) {
@@ -213,7 +232,7 @@ class HL7v2Message {
             segmentIndex[segmentName][element['group']] != null) {
           segmentArray.insert(0, segment);
 
-          if (int.tryParse(element['maxOccurs']) != 1) {
+          if (_tryParseInt(element['maxOccurs']) != 1) {
             ret[element['group']] ??= [];
 
             while (segmentArray.isNotEmpty &&
@@ -241,7 +260,7 @@ class HL7v2Message {
             );
           }
           moveOn = true;
-        } else if ((int.tryParse(element['minOccurs']) ?? 0) > 0) {
+        } else if ((_tryParseInt(element['minOccurs']) ?? 0) > 0) {
           throw Exception(
               'Message is missing required group ${element['group']}.');
         } else {
@@ -253,9 +272,7 @@ class HL7v2Message {
     return ret;
   }
 
-  /// Parses an HL7 v2 message and converts to JSON representation
-  /// @param {String} hl7
-  /// @return {Map<String, dynamic>}
+  /// Parses an HL7 v2 message [hl7] and returns its JSON representation
   Map<String, dynamic> parse(String hl7) {
     String messageType;
     String eventType;
@@ -390,10 +407,11 @@ class HL7v2Message {
 
   /// Parses an individual field in an hl7 v2 message
   ///
-  /// @param  {String} fieldValue
-  /// @param  {String} fieldName
-  /// @param  {Object} [delimiters] Optional object specifying different delimiters than the defaults
-  /// @return {JSON/String}            Either JSON or String. JSON if field has components, string otherwise.
+  /// [fieldValue]
+  /// [fieldName]
+  /// [delimiters] Optional object specifying different delimiters than the defaults
+  ///
+  /// Returns either JSON or String. JSON if field has components, string otherwise.
   dynamic parseField(
     String fieldValue,
     String fieldName,
@@ -542,5 +560,263 @@ class HL7v2Message {
       schemaKey: 'structure',
       schema: schema,
     );
+  }
+
+// If not an object, just returns fieldValue. If it is an object, it loops over it assuming
+// the top level key is the component number and the second level key is the subcomponent number
+// @param  {String/Object} fieldValue Value of the field
+// @param  {Object} delimiters The delimiters this message uses
+// @return {String}            The field in hl7 format
+  String? writeVariesField(dynamic fieldValue, Map<String, String> delimiters) {
+    int componentCounter = 1;
+    int subComponentCounter;
+    String ret = '';
+
+    if (fieldValue is! Map) {
+      return Escape.escapeString(delimiters, fieldValue.toString());
+    }
+
+    fieldValue.forEach((key, value) {
+      while (componentCounter < (_tryParseInt(key) ?? 0)) {
+        ret += delimiters['component'] ?? '';
+        componentCounter++;
+      }
+
+      if (value is Map) {
+        subComponentCounter = 1;
+        value.forEach((subKey, subValue) {
+          while (subComponentCounter < (_tryParseInt(subKey) ?? 0)) {
+            ret += delimiters['subComponent'] ?? '';
+            subComponentCounter++;
+          }
+          ret += Escape.escapeString(delimiters, subValue.toString()) ?? '';
+        });
+      } else {
+        ret += Escape.escapeString(delimiters, value.toString()) ?? '';
+      }
+    });
+
+    return ret;
+  }
+
+  /// Packs up an individual field based on the HL7 spec for that field
+  /// @param  {String/Object} fieldValue The json version of the field
+  /// @param  {String} fieldName  The name of the field
+  /// @param  {Object} schema     The schema defining this message
+  /// @param  {Object} delimiters The delimiters this message uses
+  /// @return {String}            A string representation of the field
+  String writeField(
+      {required dynamic fieldValue,
+      required String fieldName,
+      Map<String, String>? delimiters}) {
+    String ret = '';
+    var dataTypeDef =
+        schema['dataTypes'][schema['fields'][fieldName]['dataType']];
+    int compsToAdd = -1;
+
+    delimiters ??= _delimiters;
+
+    if (dataTypeDef['dataType'] == 'STRING') {
+      return Escape.escapeString(delimiters, fieldValue.toString()) ?? '';
+    }
+
+    if (dataTypeDef['dataType'] == 'VARIES') {
+      return writeVariesField(fieldValue, delimiters) ?? '';
+    }
+
+    for (int i = 0; i < dataTypeDef['components'].length; i++) {
+      var componentDef = schema['dataTypes'][schema['dataTypes']
+          [dataTypeDef['components'][i]['dataType']]['dataType']];
+
+      compsToAdd++;
+
+      if (fieldValue[i + 1] == null) {
+        continue;
+      }
+
+      for (int l = 0; l < compsToAdd; l++) {
+        ret += delimiters['component'] ?? '';
+      }
+      compsToAdd = 0;
+
+      if (componentDef['dataType'] == 'STRING') {
+        ret +=
+            Escape.escapeString(delimiters, fieldValue[i + 1].toString()) ?? '';
+        continue;
+      }
+
+      int subCompsToAdd = -1;
+      for (int j = 0; j < (componentDef['components'] ?? '').length; j++) {
+        subCompsToAdd++;
+
+        if (fieldValue[i + 1][j + 1] == null) {
+          continue;
+        }
+
+        for (int k = 0; k < subCompsToAdd; k++) {
+          ret += delimiters['subComponent'] ?? '';
+        }
+        subCompsToAdd = 0;
+
+        ret += Escape.escapeString(
+                delimiters, fieldValue[i + 1][j + 1].toString()) ??
+            '';
+      }
+    }
+
+    return ret;
+  }
+
+  /// Packs up a segment into the appropriate HL7 version of it
+  /// [segmentValue] The json version of the segment
+  /// [segmentName] The name of the segment ot pack up
+  /// [schema] The schema defining how to pack up the schema
+  /// [delimiters] The delimiters used by this message
+  /// Returns the string version of the segment
+  String writeSegment(Map<String, dynamic> segmentValue, String segmentName,
+      Map<String, dynamic> schema, Map<String, String>? delimiters) {
+    String ret = '';
+    dynamic fieldValue;
+    List<dynamic> fields;
+    int startIndex;
+
+    delimiters ??= _delimiters;
+
+    final Map<String, dynamic> segmentDef = schema['segments'][segmentName];
+    ret = segmentName;
+
+    if (segmentName == 'MSH') {
+      startIndex = 2;
+      ret += delimiters['field']! +
+          delimiters['component']! +
+          delimiters['repetition']! +
+          delimiters['escape']! +
+          delimiters['subComponent']!;
+    } else {
+      startIndex = 0;
+    }
+
+    for (int i = startIndex; i < segmentDef['fields'].length; i++) {
+      ret += delimiters['field']!;
+
+      // We add 1 to i since HL7 is not zero based
+      if (segmentValue[(i + 1).toString()] == null) {
+        continue;
+      }
+
+      if (segmentDef['fields'][i]['maxOccurs'] != '1') {
+        fields = segmentValue[(i + 1).toString()];
+
+        for (int j = 0; j < fields.length; j++) {
+          fieldValue = fields[j];
+          if (j > 0) {
+            ret += delimiters['repetition']!;
+          }
+
+          ret += writeField(
+              fieldValue: fieldValue,
+              fieldName: segmentDef['fields'][i]['field'],
+              delimiters: delimiters);
+        }
+      } else {
+        fieldValue = segmentValue[(i + 1).toString()];
+        ret += writeField(
+            fieldValue: fieldValue,
+            fieldName: segmentDef['fields'][i]['field'],
+            delimiters: delimiters);
+      }
+    }
+
+    return ret;
+  }
+
+  /// Packs up a json object representation of HL7 into an actual HL7 message
+  /// [json] The JSON version of the HL7 message
+  /// Returns the HL7 message
+  String writeMessage(Map<String, dynamic> json,
+      Map<String, String>? delimiters, Map<String, dynamic> schema) {
+    String? messageType, eventType, messageEventKey;
+    String ret;
+
+    delimiters ??= _delimiters;
+
+    messageType = json['MSH'][9][1];
+
+    if (messageType == 'ACK') {
+      eventType = 'ACK';
+    } else {
+      eventType = json['MSH'][9][2];
+    }
+
+    messageEventKey = schema['structure'][messageType]?[eventType];
+
+    if (messageEventKey == null) {
+      throw Exception(
+          'Could not load the HL7 message structure for an HL7 message.');
+    }
+
+    final Map<String, dynamic> messageDef = schema['messages'][messageEventKey];
+
+    String writeGroup(Map<String, dynamic> groupJSON,
+        Map<String, dynamic> messageDef, String groupName) {
+      String ret = '';
+      dynamic element;
+      int i, j;
+
+      for (i = 0; i < messageDef[groupName]['elements'].length; i++) {
+        element = messageDef[groupName]['elements'][i];
+
+        if (element['segment'] != null) {
+          String jsonKey = element['jsonKey'] ?? element['segment'];
+          if (groupJSON[jsonKey] != null) {
+            if (groupJSON[jsonKey] is List) {
+              int limit = (int.parse(element['maxOccurs']) == 1)
+                  ? 1
+                  : groupJSON[jsonKey].length;
+              for (j = 0; j < limit; j++) {
+                ret += writeSegment(groupJSON[jsonKey][j], element['segment'],
+                    schema, delimiters);
+                ret += '\r';
+              }
+            } else {
+              ret += writeSegment(
+                  groupJSON[jsonKey], element['segment'], schema, delimiters);
+              ret += '\r';
+            }
+          } else if (int.parse(element['minOccurs']) > 0) {
+            throw Exception(
+                'Message is missing required segment ${element['segment']}');
+          }
+        } else {
+          if (groupJSON[element['group']] != null) {
+            if (groupJSON[element['group']] is List) {
+              int limit = (int.parse(element['maxOccurs']) == 1)
+                  ? 1
+                  : groupJSON[element['group']].length;
+              for (j = 0; j < limit; j++) {
+                ret += writeGroup(groupJSON[element['group']][j], messageDef,
+                    element['group']);
+              }
+            } else {
+              ret += writeGroup(
+                  groupJSON[element['group']], messageDef, element['group']);
+            }
+          } else if (int.parse(element['minOccurs']) > 0) {
+            throw Exception(
+                'Message is missing required group ${element['group']}');
+          }
+        }
+
+        ret += '\r';
+      }
+
+      return ret;
+    }
+
+    ret = writeGroup(json, messageDef, messageEventKey);
+
+    ret = ret.replaceAll(RegExp(r'(\r)+'), '\r'); // Remove excess line breaks
+
+    return ret;
   }
 }
