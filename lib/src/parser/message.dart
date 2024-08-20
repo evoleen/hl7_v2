@@ -631,7 +631,7 @@ class HL7v2Message {
 
       compsToAdd++;
 
-      if (fieldValue[i + 1] == null) {
+      if (fieldValue[(i + 1).toString()] == null) {
         continue;
       }
 
@@ -641,7 +641,9 @@ class HL7v2Message {
       compsToAdd = 0;
 
       if (componentDef['dataType'] == 'STRING') {
-        ret += Escape.escapeString(delimiters, fieldValue[i + 1]) ?? '';
+        ret +=
+            Escape.escapeString(delimiters, fieldValue[(i + 1).toString()]) ??
+                '';
         continue;
       }
 
@@ -649,7 +651,7 @@ class HL7v2Message {
       for (int j = 0; j < (componentDef['components'] ?? '').length; j++) {
         subCompsToAdd++;
 
-        if (fieldValue[i + 1][j + 1] == null) {
+        if (fieldValue[(i + 1).toString()][(j + 1).toString()] == null) {
           continue;
         }
 
@@ -658,7 +660,9 @@ class HL7v2Message {
         }
         subCompsToAdd = 0;
 
-        ret += Escape.escapeString(delimiters, fieldValue[i + 1][j + 1]) ?? '';
+        ret += Escape.escapeString(delimiters,
+                fieldValue[(i + 1).toString()][(j + 1).toString()]) ??
+            '';
       }
     }
 

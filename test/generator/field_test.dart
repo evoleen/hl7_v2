@@ -61,18 +61,18 @@ void main() {
 
     test('should handle complex fields like PID.3', () {
       final field = {
-        1: 'ID',
-        2: 'CHECK DIGIT',
-        3: 'CODE',
-        4: {
-          1: 'namespace',
-          2: 'universal',
-          3: 'type',
+        '1': 'ID',
+        '2': 'CHECK DIGIT',
+        '3': 'CODE',
+        '4': {
+          '1': 'namespace',
+          '2': 'universal',
+          '3': 'type',
         },
-        5: 'typecode',
-        6: {
-          1: 'namespace',
-          3: 'type',
+        '5': 'typecode',
+        '6': {
+          '1': 'namespace',
+          '3': 'type',
         },
       };
       final ret = generator.writeField(fieldValue: field, fieldName: 'PID.3');
@@ -84,13 +84,13 @@ void main() {
 
     test('should handle a complex field like PID.3 with simple data', () {
       var ret =
-          generator.writeField(fieldValue: {1: '12345'}, fieldName: 'PID.3');
+          generator.writeField(fieldValue: {'1': '12345'}, fieldName: 'PID.3');
       expect(ret, equals('12345'));
 
       final field = {
-        1: '12345',
-        4: {
-          1: 'MR',
+        '1': '12345',
+        '4': {
+          '1': 'MR',
         },
       };
       ret = generator.writeField(fieldValue: field, fieldName: 'PID.3');
@@ -115,14 +115,14 @@ void main() {
 
     test('should handle null values for varies fields', () {
       final field = {
-        2: 'PDF|',
-        3: {
-          1: null,
+        '2': 'PDF|',
+        '3': {
+          '1': null,
         },
-        4: {
-          2: 'ANOTHER FAKE COMPONENT|',
+        '4': {
+          '2': 'ANOTHER FAKE COMPONENT|',
         },
-        5: null,
+        '5': null,
       };
       final ret = generator.writeField(fieldValue: field, fieldName: 'OBX.5');
       expect(ret, equals('^PDF\\F\\^^&ANOTHER FAKE COMPONENT\\F\\^'));
@@ -130,13 +130,13 @@ void main() {
 
     test('should escape HL7 control characters', () {
       var ret =
-          generator.writeField(fieldValue: {1: '12345'}, fieldName: 'PID.3');
+          generator.writeField(fieldValue: {'1': '12345'}, fieldName: 'PID.3');
       expect(ret, equals('12345'));
 
       final field = {
-        1: '12345\\',
-        4: {
-          1: 'MR',
+        '1': '12345\\',
+        '4': {
+          '1': 'MR',
         },
       };
       ret = generator.writeField(fieldValue: field, fieldName: 'PID.3');
