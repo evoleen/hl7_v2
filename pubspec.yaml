@@ -7,7 +7,7 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
-  recase: 4.1.0
+  recase: ^4.1.0
 
 dev_dependencies:
   analyzer: ^6.5.0
