@@ -104,7 +104,7 @@ void main() {
       json.remove('SCH');
 
       expect(
-          () => generator.writeMessage(json: json),
+          () => generator.write(json: json),
           throwsA(predicate((e) => e
               .toString()
               .contains('Message is missing required segment SCH'))));
@@ -114,7 +114,7 @@ void main() {
       json.remove('RESOURCES');
 
       expect(
-          () => generator.writeMessage(json: json),
+          () => generator.write(json: json),
           throwsA(predicate((e) => e
               .toString()
               .contains('Message is missing required group RESOURCES'))));

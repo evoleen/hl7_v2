@@ -736,7 +736,7 @@ class HL7v2Message {
   /// Packs up a json object representation of HL7 into an actual HL7 message
   /// [json] The JSON version of the HL7 message
   /// Returns the HL7 message
-  String writeMessage(
+  String write(
       {required Map<String, dynamic> json,
       Map<String, String>? delimiters,
       Map<String, dynamic>? schema}) {
