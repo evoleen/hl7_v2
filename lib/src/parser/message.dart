@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hl7_v2/hl7_v2.dart';
-import 'package:hl7_v2/src/schema/dataTypes.dart';
+import 'package:hl7_v2/src/schema/data_types.dart';
 import 'package:hl7_v2/src/schema/fields.dart';
 import 'package:hl7_v2/src/schema/messages.dart';
 import 'package:hl7_v2/src/schema/segments.dart';
