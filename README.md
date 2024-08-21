@@ -19,8 +19,8 @@ final jsonData = parser.parse(rawData);
 ```
 
 ## Generator
-```
-const ackJSON = {
+```dart
+final ackJSON = {
   "MSH": {
     "0": "MSH",
     "1": "|",
@@ -56,15 +56,15 @@ const ackJSON = {
   }
 };
 
-const hl7v2 = require('@redoxengine/redox-hl7-v2');
-const generator = new HL7v2.Generator();
-const data = generator.write(ackJSON);
+final generator = new HL7v2Message();
+final data = generator.write(ackJSON);
 //`MSH|^~\\&|CHERDABEE||REDOX|RDX|20150915004731||ACK^S12|20150915004731|T|2.3|||||||||\rMSA|AA|1||||\r`
 ```
 
 # Understanding the HL7v2 schema
-Our approach to parsing/generating HL7 is schema-driven. The Schema is based on the HL7v2 specification. 
-The best way to understand it is through the schema folder: 
+
+The approach to parsing/generating HL7 is schema-driven. The schema is based on the HL7v2 specification. 
+The best way to understand it is through the schema folder, copied from the original JavaScript implementation:
 ```
 schema/
   index.js - entry point to access the schema
@@ -73,7 +73,12 @@ schema/
   messages/ - contains the actual structure for each message definition, this file also contains "Groups"
   segments/ - contains definitions of which fields are in a segment
   structure/ - contains a map from HL7 message/event type to structure definition. 
-``` 
+```
+
+In order to avoid having to manage external JSON files as assets, the original JSON schema has been converted to Dart. The Dart schema is found in `lib/src/schema`. To use the original schema, run `HL7v2Message.loadSchema()`. This method is able to parse the original JSON schema files so that the code behaves exactly as the original implementation.
+
+Otherwise the Dart schema is used by default. The Dart files can be recreated by running `HL7v2Message.writeDartJsonSchema()`.
+
 ## Basics
 There are many events defined in HL7, but some share the same structure. For example ADT^A01 and ADT^A04 both have the same ADT^A01 structure. 
 
@@ -107,13 +112,12 @@ Once the structure is identified the code looks at the corresponding schema in `
   }
 }
 ```
+
 ## Overriding the schema
 Existing HL7v2 implementations don't often respect rules about segment groups and segment order, so custom schemas can be used at will. Pass a JSON object to the constructor of either the parser or the generator to use a custom Schema. It will get merged with the existing schema. 
 
 Examples of custom schemas can be found here: 
-* [Adding a Z-segment](./custom_schema_examples/AddZSegment.md)
-
-
+* [Adding a Z-segment](https://github.com/RedoxEngine/redox-hl7-v2/blob/master/custom_schema_examples/AddZSegment.md)
 
 # HL7 Trademark and IP Statement
 HL7® and HEALTH LEVEL SEVEN® are trademarks owned by Health Level Seven International. HL7® and HEALTH LEVEL SEVEN® are registered with the United States Patent and Trademark Office.
