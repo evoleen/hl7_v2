@@ -1,6 +1,6 @@
 # HL7 Version 2 (HL7v2)
 
-[HL7’s Version 2.x (V2) Messaging Standard](http://www.hl7.org/implement/standards/product_brief.cfm?product_id=185) 
+[HL7’s Version 2.x (V2) Messaging Standard](https://www.hl7.org/implement/standards/product_brief.cfm?product_id=185) 
 is the most ubiquitous healthcare data exchange standard. This module converts HL7v2 messages to and from a JSON representation.
 
 This package is a Dart port of Redox' original code found [here](https://github.com/RedoxEngine/redox-hl7-v2).
