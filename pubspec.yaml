@@ -1,5 +1,5 @@
 name: hl7_v2
-description: An HL7 v2 message parser and generator, implemented natively in Dart. Allows parsing HL7 v2 messages from their raw string format into a JSON object as well as generating valid HL7 v2 messages from JSON objects.
+description: An HL7 v2 message parser and generator, implemented natively in Dart.
 version: 0.0.1
 repository: https://github.com/evoleen/hl7_v2
 environment:
